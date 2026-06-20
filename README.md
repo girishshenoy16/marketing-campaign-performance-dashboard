@@ -239,4 +239,5 @@ Then navigate to **`http://localhost:8000`** in your browser.
 ## Connect
 
 **Built by:** [Girish Shenoy](https://github.com/girishshenoy16)
+
 **GitHub:** [https://github.com/girishshenoy16/marketing-campaign-performance-dashboard](https://github.com/girishshenoy16/marketing-campaign-performance-dashboard)
