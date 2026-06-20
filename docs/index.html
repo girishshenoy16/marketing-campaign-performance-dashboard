@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MarkQ — Marketing Campaign Performance Dashboard</title>
+<meta name="description" content="MarkQ Marketing Campaign Performance Dashboard. Executive-grade business insights, dynamic regional and audience analytics, and prescriptive boardroom recommendations.">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="global-error-banner" style="display:none; background:var(--red); color:#fff; padding:12px 32px; text-align:center; font-weight:bold; font-size:13.5px; position:relative; z-index: 1001;">
+  <span id="global-error-msg">⚠ Data Processing Error: Campaign data loaded successfully but could not be rendered.</span>
+  <button onclick="document.getElementById('global-error-banner').style.display='none'" style="position:absolute; right:32px; top:50%; transform:translateY(-50%); background:none; border:none; color:#fff; font-size:18px; cursor:pointer; font-weight:bold;">×</button>
+</div>
+
+<div class="header">
+  <div class="h-left">
+    <div class="logo">MarkQ</div>
+    <div class="h-title">
+      <h1>Marketing Campaign Performance Dashboard</h1>
+      <p>
+        Executive Intelligence &nbsp;|&nbsp; Marketing Campaign Performance Review &nbsp;|&nbsp; Jan – Dec 2024
+      </p>
+    </div>
+  </div>
+  <div class="h-right-panel">
+    <div class="h-stat">
+      <span>Revenue</span>
+      <strong id="h-rev-val">₹1.22 Cr</strong>
+    </div>
+    <div class="h-stat">
+      <span>Profit</span>
+      <strong id="h-profit-val">₹83.73L</strong>
+    </div>
+    <div class="h-stat">
+      <span>Overall ROI</span>
+      <strong id="h-roi-val" class="sem-green">219.3%</strong>
+    </div>
+    <div class="h-stat">
+      <span>Health Score</span>
+      <strong id="h-health-val" class="sem-green">82</strong>
+    </div>
+    <div class="h-stat">
+      <span>Risk Level</span>
+      <strong id="h-risk-val" class="sem-green">Low</strong>
+    </div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="goPage('p1',this)">📈 Spend, Revenue &amp; ROI</div>
+  <div class="tab" onclick="goPage('p2',this)">🌍 Regional &amp; Audience</div>
+  <div class="tab" onclick="goPage('p3',this)">⚙️ Efficiency &amp; Funnel</div>
+  <div class="tab" onclick="goPage('p4',this)">📋 Executive Strategy</div>
+</div>
+
+<div class="fbar" id="filter-bar">
+  <div class="fbar-inner">
+    <!-- Row 1: Controls -->
+    <div class="fbar-row-1">
+      <!-- Left Side: Dropdown Filters -->
+      <div class="fbar-left">
+        <div class="fg">
+          <label for="f-plat"></label><select id="f-plat" onchange="filterChanged(this)">
+            <option value="">Platform: All</option>
+            <option>Google Ads</option><option>Facebook</option><option>Instagram</option>
+            <option>LinkedIn</option><option>YouTube</option><option>Email</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label for="f-reg"></label><select id="f-reg" onchange="filterChanged(this)">
+            <option value="">Region: All</option>
+            <option>North America</option><option>Europe</option><option>Asia Pacific</option>
+            <option>Latin America</option><option>Middle East & Africa</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label for="f-type"></label><select id="f-type" onchange="filterChanged(this)">
+            <option value="">Type: All</option>
+            <option>Awareness</option><option>Consideration</option><option>Conversion</option>
+            <option>Retention</option><option>Seasonal</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label for="f-aud"></label><select id="f-aud" onchange="filterChanged(this)">
+            <option value="">Audience: All</option>
+            <option>18-24</option><option>25-34</option><option>35-44</option><option>45-54</option><option>55+</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label for="f-roi"></label><select id="f-roi" onchange="filterChanged(this)">
+            <option value="">ROI: All</option>
+            <option>Profitable Only (ROI &gt; 0%)</option>
+            <option>Loss-Making Only (ROI &lt; 0%)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Right Side: Status Info Block & Reset Button -->
+      <div class="fbar-right">
+        <!-- Unified Status Info Block -->
+        <div class="fbar-status-block">
+          <span class="fbar-badge" id="filter-counter">Showing 104 of 104 Campaigns</span>
+          <div id="filter-status-banner" style="display:none; align-items:center; gap:8px;">
+            <span class="divider-pipe">|</span>
+            <span id="fsb-metrics" style="font-weight:700; font-size:12.5px;">ROI: 0%</span>
+            <span class="divider-pipe">|</span>
+            <span id="fsb-risk-badge" class="badge">Low Risk</span>
+          </div>
+        </div>
+        <button class="reset" onclick="resetAll()">Clear All</button>
+      </div>
+    </div>
+    
+    <!-- Row 2: Metadata (Breadcrumb & Active Chips) -->
+    <div class="fbar-row-2">
+      <!-- Left: Breadcrumb -->
+      <div class="fbar-breadcrumb" id="filter-breadcrumb">
+        All Campaigns
+      </div>
+      <!-- Right: Active Chips -->
+      <div id="active-filters-label" class="filter-chips-container" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 1 -->
+<div class="page active" id="p1">
+  <div class="kpi-row p1-kpi-grid" id="p1-kpis">
+    <div class="kpi kpi-secondary"><label>Spend</label><div class="val" id="kpi-spend" style="color: #000000;">₹38.27L</div><div class="sub" id="kpi-spend-sub">Target: ≤ ₹40.0L &nbsp;|&nbsp; Gap: -₹1.73L &nbsp;|&nbsp; <span class="sem-green" style="font-weight:700;">On Track</span></div><div class="kpi-filter-badge" style="display:none;"><span class="kfb-title">Filtered View</span><span class="kfb-desc"></span></div></div>
+    <div class="kpi kgreen kpi-hero"><label>Revenue</label><div class="val" id="kpi-revenue">₹1.22 Cr</div><div class="sub up" id="kpi-revenue-sub">Target: ≥ ₹1.10 Cr &nbsp;|&nbsp; Gap: +₹12.4L &nbsp;|&nbsp; <span class="sem-green" style="font-weight:700;">On Track</span></div><div class="kpi-filter-badge" style="display:none;"><span class="kfb-title">Filtered View</span><span class="kfb-desc"></span></div></div>
+    <div class="kpi kgreen kpi-hero" id="kpi-profit-card"><label>Profit</label><div class="val" id="kpi-profit">₹83.73L</div><div class="sub up" id="kpi-profit-sub">Target: ≥ ₹80.0L &nbsp;|&nbsp; Gap: +₹3.73L &nbsp;|&nbsp; <span class="sem-green" style="font-weight:700;">On Track</span></div><div class="kpi-filter-badge" style="display:none;"><span class="kfb-title">Filtered View</span><span class="kfb-desc"></span></div></div>
+    <div class="kpi kgreen kpi-hero"><label>ROI</label><div class="val" id="kpi-roi">219.3%</div><div class="sub up" id="kpi-roi-sub">Target: ≥ 200% &nbsp;|&nbsp; Gap: +19.3% &nbsp;|&nbsp; <span class="sem-green" style="font-weight:700;">On Track</span></div><div class="kpi-filter-badge" style="display:none;"><span class="kfb-title">Filtered View</span><span class="kfb-desc"></span></div></div>
+    <div class="kpi kred kpi-secondary kpi-risk-card"><label>Negative ROI Campaigns</label><div class="val" id="kpi-neg-campaigns">29 / 104</div><div class="sub dn" id="kpi-neg-campaigns-sub">Target: ≤ 0 &nbsp;|&nbsp; Gap: +29 &nbsp;|&nbsp; <span class="sem-red" style="font-weight:700;">Risk</span></div><div class="kpi-filter-badge" style="display:none;"><span class="kfb-title">Filtered View</span><span class="kfb-desc"></span></div></div>
+  </div>
+
+  <div class="g2">
+    <div class="cc">
+      <h3>Which platform gives the best return on spend?</h3>
+      <br>
+      <div class="ci">💡 Instagram delivers 324% ROI on ₹6.73L spend — most efficient platform. Reallocate budget here.</div>
+      <br>
+      <div class="cw"><canvas id="ch-platform" height="190"></canvas></div>
+    </div>
+    <div class="cc">
+      <h3>Which campaign type should we double down on — and which should we kill?</h3>
+      <br>
+      <div class="ci">💡 Awareness campaigns return -35% ROI — every rupee spent here loses 35 paise. Stop or redesign this category.</div>
+      <br>
+      <div id="camptype-priorities" style="display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap;"></div>
+      <div class="cw"><canvas id="ch-camptype" height="190"></canvas></div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="cc">
+      <h3>Where is the funnel leaking the most?</h3>
+      <br>
+      <div class="ci">💡 Click-through is the biggest leak at 2.89% — creative and targeting need the most attention, not bottom-funnel conversion (already strong at 21.92%)</div>
+      <br>
+      <div class="funnel-container-flex" style="display:flex; gap:20px; align-items:center; flex-wrap:wrap;">
+        <div class="funnel" id="funnel-viz" style="flex:1; min-width:220px; padding:0;"></div>
+        <div class="funnel-metrics-sidebar">
+          <div class="funnel-metric-card info">
+            <span class="lbl">Funnel Efficiency</span>
+            <div class="val" id="funnel-efficiency">82%</div>
+          </div>
+          <div class="funnel-metric-card risk">
+            <span class="lbl">Revenue Leakage</span>
+            <div class="val" id="funnel-leakage">₹14.8L</div>
+          </div>
+          <div class="funnel-metric-card warning">
+            <span class="lbl">Recoverable Revenue Opportunity</span>
+            <div class="val" id="funnel-lost-opp">₹32.5L</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cc">
+      <h3>How did spend and revenue trend month over month?</h3>
+      <br>
+      <div class="ci">💡 July generated ₹18.3L revenue on ₹4.86L spend — highest revenue efficiency month. Study what campaigns ran then.</div>
+      <br>
+      <div class="cw"><canvas id="ch-monthly" height="190"></canvas></div>
+    </div>
+  </div>
+
+  <div class="gfull">
+    <div class="cc">
+      <h3>Which are our top 10 highest-revenue campaigns?</h3>
+      <br>
+      <div class="ci">💡 Top 3 campaigns are ALL on Instagram/Facebook/Email in Asia Pacific — pattern worth replicating elsewhere</div>
+      <br>
+      <div class="cw"><canvas id="ch-top10" height="160"></canvas></div>
+    </div>
+  </div>
+
+  <div class="cc executive-summary-panel" style="margin-top:20px;">
+    <h3>Key Insights — Spend, Revenue &amp; ROI</h3>
+    <br>
+    <div class="insights-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px; margin-top:8px;">
+      <div class="insight-card risk" id="p1-insight-risk-card">
+        <div class="insight-hdr">
+          <span class="badge red">Risk</span>
+        </div>
+        <p id="p1-insight-risk">Pause or redesign campaigns immediately to prevent losses.</p>
+      </div>
+      <div class="insight-card growth" id="p1-insight-opportunity-card">
+        <div class="insight-hdr">
+          <span class="badge green">Opportunity</span>
+        </div>
+        <p id="p1-insight-opportunity">Scale high-performing platform spend to maximize yield.</p>
+      </div>
+      <div class="insight-card strategic" id="p1-insight-action-card">
+        <div class="insight-hdr">
+          <span class="badge blue">Recommended Action</span>
+        </div>
+        <p id="p1-insight-action">Reallocate budget from underperforming segments to high-margin channels.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 2 -->
+<div class="page" id="p2">
+
+  <div class="kpi-row k4" id="p2-kpis">
+    <div class="kpi kgreen"><label>Best ROI Region</label><div class="val val-text" id="kpi-best-region">Asia Pacific</div><div class="sub up" id="kpi-best-region-sub">↑ 541% average ROI</div><div class="kpi-filter-badge" style="display:none;"><span class="kfb-title">Filtered View</span><span class="kfb-desc"></span></div></div>
+    <div class="kpi kred"><label>Worst ROI Region</label><div class="val val-text" id="kpi-worst-region">North America</div><div class="sub dn" id="kpi-worst-region-sub">↓ -35.3% average ROI</div><div class="kpi-filter-badge" style="display:none;"><span class="kfb-title">Filtered View</span><span class="kfb-desc"></span></div></div>
+    <div class="kpi kgreen"><label>Best ROI Audience Segment</label><div class="val val-text" id="kpi-best-audience">45-54 Age Group</div><div class="sub up" id="kpi-best-audience-sub">↑ 731% average ROI</div><div class="kpi-filter-badge" style="display:none;"><span class="kfb-title">Filtered View</span><span class="kfb-desc"></span></div></div>
+    <div class="kpi kamber"><label>Avg Customer Acquisition Cost</label><div class="val" id="kpi-avg-cac">₹325.63</div><div class="sub am" id="kpi-avg-cac-sub">⚠ Flag if segment CAC exceeds ₹500</div><div class="kpi-filter-badge" style="display:none;"><span class="kfb-title">Filtered View</span><span class="kfb-desc"></span></div></div>
+  </div>
+
+  <!-- Strategic Audience Insights Card -->
+  <div class="cc" style="border-left: 5px solid var(--purple); background:#FAF5FF; margin-bottom:14px; padding:12px 18px;" id="p2-hero-insight-card">
+    <h3 style="color:var(--purple); font-size:14px; text-transform:uppercase; letter-spacing:0.5px; margin:0 0 8px 0;">Strategic Audience Insights</h3>
+    <div style="display:flex; gap:20px; flex-wrap:wrap; align-items:center;">
+      <div style="flex:1; min-width:240px; background:#fff; border:1px solid rgba(107, 70, 193, 0.15); border-radius:8px; padding:10px 14px; box-shadow:var(--shadow-sm);">
+        <div style="font-size:10px; text-transform:uppercase; color:var(--muted); font-weight:700; letter-spacing:0.3px;">Revenue Leader</div>
+        <strong style="font-size:16px; color:var(--navy); display:block; margin-top:2px;" id="p2-rev-leader-title">35–44 Age Group</strong>
+        <p style="font-size:11.5px; color:var(--muted); margin-top:4px; line-height:1.35;" id="p2-rev-leader-desc">Scale this segment for aggressive top-line revenue growth.</p>
+      </div>
+      <div style="flex:1; min-width:240px; background:#fff; border:1px solid rgba(107, 70, 193, 0.15); border-radius:8px; padding:10px 14px; box-shadow:var(--shadow-sm);">
+        <div style="font-size:10px; text-transform:uppercase; color:var(--muted); font-weight:700; letter-spacing:0.3px;">Profit Leader</div>
+        <strong style="font-size:16px; color:var(--navy); display:block; margin-top:2px;" id="p2-profit-leader-title">45–54 Age Group</strong>
+        <p style="font-size:11.5px; color:var(--muted); margin-top:4px; line-height:1.35;" id="p2-profit-leader-desc">Scale this segment for bottom-line profit optimization (highest average ROI).</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="cc">
+      <h3>Which region should get more budget next quarter?</h3>
+      <br>
+      <div class="ci">💡 North America is burning budget at -35.3% ROI. Asia Pacific returns 541%. Reallocate immediately.</div>
+      <br>
+      <div class="cw"><canvas id="ch-region" height="200"></canvas></div>
+    </div>
+    <div class="cc">
+      <h3>Which audience segment is most cost-efficient to acquire?</h3>
+      <br>
+      <div class="ci">💡 Acquiring an 18-24 customer costs ₹798.75 — 15x more than a 45-54 customer at ₹51.65. Reconsider targeting strategy for this segment.</div>
+      <br>
+      <div class="cw"><canvas id="ch-cac" height="200"></canvas></div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="cc">
+      <h3>Which segment generates the most revenue per rupee spent?</h3>
+      <br>
+      <div class="ci">💡 Bubble size = ROI%. Bubbles above the diagonal = profitable; below = losing money. 18-24 cluster sits closest to the loss zone.</div>
+      <br>
+      <div class="cw"><canvas id="ch-scatter" height="200"></canvas></div>
+    </div>
+    <div class="cc">
+      <h3>Which audience segment drives the most revenue?</h3>
+      <br>
+      <div class="ci">💡 35-44 age group generates ₹61.3L — by far the largest revenue contributor, also the highest-ROI segment after 45-54</div>
+      <br>
+      <div class="cw"><canvas id="ch-audrev" height="200"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Strategic Capital Allocation Summary Card -->
+  <div class="cc" style="border-left: 5px solid var(--navy); background:#F7FAFC; margin-bottom:14px;" id="p2-allocation-summary-card">
+    <h3 style="color:var(--navy); font-size:14px; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">Strategic Capital Allocation Summary</h3>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
+      <!-- Increase -->
+      <div style="background:#F0FFF4; border:1px solid #C6F6D5; border-radius:8px; padding:10px 14px;">
+        <span style="font-size:10px; font-weight:800; color:#22543D; text-transform:uppercase; letter-spacing:0.3px; display:block;">Increase Budget</span>
+        <strong style="font-size:13px; color:#22543D; display:block; margin-top:4px;">Latin America, Asia Pacific, Instagram, 45–54 Segment</strong>
+        <p style="font-size:10.5px; color:#2F855A; margin-top:3px; line-height:1.3;">Scale channels and segments showing optimal ROI yield.</p>
+      </div>
+      <!-- Maintain -->
+      <div style="background:#EBF8FF; border:1px solid #BEE3F8; border-radius:8px; padding:10px 14px;">
+        <span style="font-size:10px; font-weight:800; color:#2B6CB0; text-transform:uppercase; letter-spacing:0.3px; display:block;">Maintain Budget</span>
+        <strong style="font-size:13px; color:#2B6CB0; display:block; margin-top:4px;">Europe</strong>
+        <p style="font-size:10.5px; color:#2B6CB0; margin-top:3px; line-height:1.3;">Stable return profiles; maintain standard budget baseline.</p>
+      </div>
+      <!-- Monitor -->
+      <div style="background:#FFFDF5; border:1px solid #FEEBC8; border-radius:8px; padding:10px 14px;">
+        <span style="font-size:10px; font-weight:800; color:#744210; text-transform:uppercase; letter-spacing:0.3px; display:block;">Monitor / Optimize</span>
+        <strong style="font-size:13px; color:#744210; display:block; margin-top:4px;">Middle East & Africa</strong>
+        <p style="font-size:10.5px; color:#744210; margin-top:3px; line-height:1.3;">Watch performance closely; optimize targeting creatives.</p>
+      </div>
+      <!-- Reduce -->
+      <div style="background:#FFF5F5; border:1px solid #FED7D7; border-radius:8px; padding:10px 14px;">
+        <span style="font-size:10px; font-weight:800; color:#742A2A; text-transform:uppercase; letter-spacing:0.3px; display:block;">Reduce Spend / Pause</span>
+        <strong style="font-size:13px; color:#742A2A; display:block; margin-top:4px;">North America, 18–24 Segment</strong>
+        <p style="font-size:10.5px; color:#9B2C2C; margin-top:3px; line-height:1.3;">Severe margin erosion. Defund or restructure immediately.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="cc" id="heatmap-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <h3 style="margin:0; font-size:15px; font-weight:700; color:var(--navy);">Regional Platform Performance Matrix</h3>
+        <span style="font-size:11px; color:var(--muted); font-weight:500;">Compare ROI, Revenue, Profit, and Spend across regions and channels.</span>
+      </div>
+      <div class="heatmap-toggles" style="display:flex; gap:6px;">
+        <button class="ht-toggle active" onclick="toggleHeatmap('roi', this)">ROI</button>
+        <button class="ht-toggle" onclick="toggleHeatmap('revenue', this)">Revenue</button>
+        <button class="ht-toggle" onclick="toggleHeatmap('profit', this)">Profit</button>
+        <button class="ht-toggle" onclick="toggleHeatmap('spend', this)">Spend</button>
+      </div>
+    </div>
+    <br>
+    <!-- Executive Insight Chips -->
+    <div class="matrix-insights-bar" id="matrix-insights" style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
+      <!-- Dynamic chips generated in script.js -->
+    </div>
+    <br>
+    <div class="ci">💡 Asia Pacific + Instagram is the strongest combination at 748.5% ROI. North America shows negative ROI across every platform — a regional problem, not a platform problem.</div>
+    <br>
+    <div class="table-scroll-container" style="overflow-x:auto; width:100%; -webkit-overflow-scrolling:touch; margin-top:8px;">
+      <table class="ht">
+        <thead>
+          <tr>
+            <th style="position:sticky; left:0; z-index:2; background:var(--navy); text-align:left;">Region</th>
+            <th>Email</th>
+            <th>Facebook</th>
+            <th>Google Ads</th>
+            <th>Instagram</th>
+            <th>LinkedIn</th>
+            <th>YouTube</th>
+            <th style="background:#f1f5f9; color:var(--navy); font-weight:700; border-left:2px solid var(--border);">Region ROI</th>
+            <th style="background:#f1f5f9; color:var(--navy); font-weight:700;">Region Rev</th>
+            <th style="background:#f1f5f9; color:var(--navy); font-weight:700;">Region Profit</th>
+            <th style="background:#f1f5f9; color:var(--navy); font-weight:700;">Status</th>
+            <th style="background:#f1f5f9; color:var(--navy); font-weight:700;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="hm-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="cc executive-summary-panel">
+    <h3>Key Insights — Regional &amp; Audience Intelligence</h3>
+    <br>
+    <div class="insights-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px; margin-top:8px;">
+      <div class="insight-card risk">
+        <div class="insight-hdr">
+          <span class="badge red">Risk</span>
+        </div>
+        <p id="p2-insight-risk">Reduce North America spend immediately.</p>
+      </div>
+      <div class="insight-card growth">
+        <div class="insight-hdr">
+          <span class="badge green">Opportunity</span>
+        </div>
+        <p id="p2-insight-opportunity">Reallocate underperforming regional budgets to Asia Pacific.</p>
+      </div>
+      <div class="insight-card strategic">
+        <div class="insight-hdr">
+          <span class="badge blue">Recommended Action</span>
+        </div>
+        <p id="p2-insight-action">Reallocate budget to Asia Pacific and Instagram conversion campaigns.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 3 -->
+<div class="page" id="p3">
+  <div class="kpi-row k4" id="p3-kpis">
+    <div class="kpi"><label>Avg Click-Through Rate</label><div class="val" id="kpi-ctr">3.25%</div><div class="sub" id="kpi-ctr-sub">⚠ Flag if below 2%</div><div class="kpi-filter-badge" style="display:none;"><span class="kfb-title">Filtered View</span><span class="kfb-desc"></span></div></div>
+    <div class="kpi"><label>Avg Cost Per Click</label><div class="val" id="kpi-cpc">₹2.08</div><div class="sub" id="kpi-cpc-sub">Across all platforms</div><div class="kpi-filter-badge" style="display:none;"><span class="kfb-title">Filtered View</span><span class="kfb-desc"></span></div></div>
+    <div class="kpi"><label>Avg Cost Per Mille</label><div class="val" id="kpi-cpm">₹63.54</div><div class="sub" id="kpi-cpm-sub">Per 1,000 impressions</div><div class="kpi-filter-badge" style="display:none;"><span class="kfb-title">Filtered View</span><span class="kfb-desc"></span></div></div>
+    <div class="kpi kgreen"><label>Avg Conversion Rate</label><div class="val" id="kpi-convrate">18.26%</div><div class="sub up" id="kpi-convrate-sub">Leads → conversions</div><div class="kpi-filter-badge" style="display:none;"><span class="kfb-title">Filtered View</span><span class="kfb-desc"></span></div></div>
+  </div>
+
+  <div class="g2">
+    <div class="cc">
+      <h3>Which platform is most cost-efficient on clicks?</h3>
+      <br>
+      <div class="ci">💡 LinkedIn costs 2x more per click than Email — but check if LinkedIn leads convert at a higher rate before cutting spend</div>
+      <br>
+      <div class="cw"><canvas id="ch-cpc" height="200"></canvas></div>
+    </div>
+    <div class="cc">
+      <h3>How does conversion rate vary by campaign type?</h3>
+      <br>
+      <div class="ci">💡 Retention (31.1%) and Conversion (30.9%) campaigns convert leads best. Awareness campaigns convert at only 8.1% — they need a different success metric, not conversion volume.</div>
+      <br>
+      <div class="cw"><canvas id="ch-convrate" height="200"></canvas></div>
+    </div>
+  </div>
+
+  <div class="gfull">
+    <div class="cc">
+      <h3>Are our worst-performing campaigns concentrated in one campaign type?</h3>
+      <br>
+      <div class="ci">💡 100% of our 10 worst campaigns are Awareness type. This is a strategy problem, not a one-off failure.</div>
+      <br>
+      <div class="cw"><canvas id="ch-bottom10" height="170"></canvas></div>
+    </div>
+
+    <!-- Strong section divider with 32px vertical spacing -->
+    <div style="margin: 32px 0; border-top: 2.5px solid var(--border); width: 100%; opacity: 0.85;"></div>
+
+    <div class="cc" id="campaigns-table-card">
+      <h3>Campaigns to Pause Immediately</h3>
+      <br>
+      <div class="campaign-pause-summary" style="display:flex; justify-content:space-between; align-items:center; background:#FFF5F5; border:1px solid #FED7D7; border-radius:8px; padding:16px; margin-bottom:18px;">
+        <div style="flex: 1; text-align:center; min-width:120px;">
+          <span style="font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; display:block; letter-spacing:0.3px; margin-bottom:4px;">Campaigns to Pause</span>
+          <strong style="font-size:20px; color:var(--red); font-weight:800;" id="pause-count-val">10</strong>
+        </div>
+        <div style="flex: 1; text-align:center; min-width:120px; border-left:1.5px solid #FED7D7;">
+          <span style="font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; display:block; letter-spacing:0.3px; margin-bottom:4px;">Potential Savings</span>
+          <strong style="font-size:20px; color:var(--red); font-weight:800;" id="pause-savings-val">₹2.72L</strong>
+        </div>
+        <div style="flex: 1; text-align:center; min-width:120px; border-left:1.5px solid #FED7D7;">
+          <span style="font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; display:block; letter-spacing:0.3px; margin-bottom:4px;">Portfolio Impact</span>
+          <strong style="font-size:20px; color:var(--red); font-weight:800;">High</strong>
+        </div>
+      </div>
+      <table class="dtable">
+        <thead>
+          <tr>
+            <th>Campaign Name</th>
+            <th>Platform</th>
+            <th class="num">Spend</th>
+            <th class="num">Revenue</th>
+            <th class="num">Net Loss</th>
+            <th class="num">Loss / ₹1 Spent</th>
+            <th>Rec. Action</th>
+          </tr>
+        </thead>
+        <tbody id="bottom-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="cc executive-summary-panel">
+    <h3>Key Insights — Campaign Efficiency &amp; Funnel</h3>
+    <br>
+    <div class="insights-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px; margin-top:8px;">
+      <div class="insight-card risk">
+        <div class="insight-hdr">
+          <span class="badge red">Risk</span>
+        </div>
+        <p id="p3-insight-risk">Pause or redesign underperforming campaigns.</p>
+      </div>
+      <div class="insight-card growth">
+        <div class="insight-hdr">
+          <span class="badge green">Opportunity</span>
+        </div>
+        <p id="p3-insight-opportunity">Optimize creative and targeting to address click-through rate leaks.</p>
+      </div>
+      <div class="insight-card strategic">
+        <div class="insight-hdr">
+          <span class="badge blue">Recommended Action</span>
+        </div>
+        <p id="p3-insight-action">Pause worst-performing campaigns to prevent net losses.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 4 -->
+<div class="page" id="p4">
+  <!-- Executive Decision Snapshot Banner -->
+  <div class="cc" id="p4-snapshot-banner" style="display:flex; justify-content:center; align-items:center; background:linear-gradient(135deg, #1E293B 0%, #0F172A 100%); color:#fff; border-radius:8px; padding:12px 20px; margin-bottom:16px; flex-wrap:wrap; gap:12px; border:1px solid #334155; box-shadow:var(--shadow-md);">
+    <div style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:#94A3B8;">Executive Decision Snapshot</div>
+    <div style="display:flex; gap:20px; flex-wrap:wrap; align-items:center;">
+      <div>
+        <span style="font-size:9px; color:#94A3B8; font-weight:700; text-transform:uppercase; display:block; letter-spacing:0.3px;">Revenue Impact</span>
+        <strong id="snap-rev-impact" style="font-size:14px; font-weight:800; color:#38BDF8;">+₹0</strong>
+      </div>
+      <div style="border-left:1px solid #334155; padding-left:16px;">
+        <span style="font-size:9px; color:#94A3B8; font-weight:700; text-transform:uppercase; display:block; letter-spacing:0.3px;">Cost Savings</span>
+        <strong id="snap-cost-savings" style="font-size:14px; font-weight:800; color:#34D399;">+₹0</strong>
+      </div>
+      <div style="border-left:1px solid #334155; padding-left:16px;">
+        <span style="font-size:9px; color:#94A3B8; font-weight:700; text-transform:uppercase; display:block; letter-spacing:0.3px;">Profit Impact</span>
+        <strong id="snap-profit-impact" style="font-size:14px; font-weight:800; color:#34D399;">+₹0</strong>
+      </div>
+      <div style="border-left:1px solid #334155; padding-left:16px;">
+        <span style="font-size:9px; color:#94A3B8; font-weight:700; text-transform:uppercase; display:block; letter-spacing:0.3px;">Risk Level</span>
+        <strong id="snap-risk-level" class="sem-green" style="font-size:14px; font-weight:800; display:block;">Low</strong>
+      </div>
+      <div style="border-left:1px solid #334155; padding-left:16px;">
+        <span style="font-size:9px; color:#94A3B8; font-weight:700; text-transform:uppercase; display:block; letter-spacing:0.3px;">Priority Action</span>
+        <strong id="snap-priority-action" style="font-size:12.5px; font-weight:800; color:#FBBF24; display:block; max-width:260px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Pause bottom campaigns</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Row: Expected Financial Impact, Budget Reallocation & Forecasting -->
+  <div class="g-hero-strategy">
+    <!-- Executive Recommendations Impact Projection Card (Hero) -->
+    <div class="cc impact-hero-card" id="p4-impact-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+      <div>
+        <h3 style="font-size:15px; margin-bottom:4px; color:var(--navy);">Executive Recommendations Impact Projection</h3>
+        <br>
+        <div class="ci" style="margin-bottom:10px;">Estimated annual benefits projected if all boardroom recommendations are successfully executed.</div>
+        <br>
+        <div class="impact-grid-hero" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px;">
+          <div style="background:rgba(0,135,90,0.04); border:1.5px solid rgba(0,135,90,0.12); padding:10px 14px; border-radius:8px; box-shadow:var(--shadow-sm);">
+            <span style="font-size:9.5px; color:var(--muted); font-weight:700; text-transform:uppercase; display:block; letter-spacing:0.3px;">Revenue Impact</span>
+            <strong id="impact-rev-gain" style="font-size:22px; font-weight:800; color:var(--green); display:block; margin-top:2px;">+₹0</strong>
+          </div>
+          <div style="background:rgba(0,135,90,0.04); border:1.5px solid rgba(0,135,90,0.12); padding:10px 14px; border-radius:8px; box-shadow:var(--shadow-sm);">
+            <span style="font-size:9.5px; color:var(--muted); font-weight:700; text-transform:uppercase; display:block; letter-spacing:0.3px;">Cost Savings</span>
+            <strong id="impact-cost-savings" style="font-size:22px; font-weight:800; color:var(--green); display:block; margin-top:2px;">+₹0</strong>
+          </div>
+          <div style="background:rgba(0,135,90,0.04); border:1.5px solid rgba(0,135,90,0.12); padding:10px 14px; border-radius:8px; box-shadow:var(--shadow-sm);">
+            <span style="font-size:9.5px; color:var(--muted); font-weight:700; text-transform:uppercase; display:block; letter-spacing:0.3px;">ROI Improvement</span>
+            <strong id="impact-roi-lift" style="font-size:22px; font-weight:800; color:var(--green); display:block; margin-top:2px;">+0.0%</strong>
+          </div>
+          <div style="background:rgba(0,135,90,0.04); border:1.5px solid rgba(0,135,90,0.12); padding:10px 14px; border-radius:8px; box-shadow:var(--shadow-sm);">
+            <span style="font-size:9.5px; color:var(--muted); font-weight:700; text-transform:uppercase; display:block; letter-spacing:0.3px;">Profit Impact</span>
+            <strong id="impact-profit-gain" style="font-size:22px; font-weight:800; color:var(--green); display:block; margin-top:2px;">+₹0</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prescriptive Budget Reallocation Card -->
+    <div class="cc" id="p4-reallocate-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+      <div>
+        <h3 style="font-size:14px; margin-bottom:4px; color:var(--navy);">Prescriptive Budget Reallocation</h3>
+        <br>
+        <div class="ci" style="margin-bottom:8px;">Transfer budget away from low-performing channels.</div>
+        <br>
+        <div style="background:#FFF9F5; border:1px dashed var(--orange); border-radius:8px; padding:10px 14px; margin-top:6px;">
+          <div style="font-size:9.5px; text-transform:uppercase; color:var(--orange); font-weight:800; letter-spacing:0.3px;">Recommended Action</div>
+          <div style="font-size:12px; font-weight:600; color:var(--navy); margin-top:3px; line-height:1.4;" id="reallocate-text">
+            Move ₹5L from <strong>Awareness Campaigns</strong> to <strong>Instagram Conversion Campaigns</strong>.
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:10px; background:rgba(0,135,90,0.03); border:1px solid rgba(0,135,90,0.08); border-radius:8px; padding:8px 12px; display:flex; justify-content:center; align-items:center;">
+        <div style="font-size:14px; font-weight:800; color:var(--green); margin-right:8px;">Action:</div>
+        <div>
+          <span style="font-size:12px; text-transform:uppercase; color:var(--muted); font-weight:700;">Revenue Impact</span>
+          <div style="font-size:15px; font-weight:800; color:var(--green); margin-top:1px;" id="reallocate-impact">+₹0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Forecasting Card -->
+    <div class="cc" id="forecast-section" style="display:flex; flex-direction:column; justify-content:space-between;">
+      <div>
+        <h3 style="margin-bottom:8px;">Forward-Looking Forecasting</h3>
+        <br>
+        <div class="ci" style="margin-bottom:10px;">Projections based on filters and rolling campaign cycles.</div>
+        <br>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
+          <div style="background:#F8FAFC; padding:8px 10px; border-radius:6px; border:1px solid var(--border);">
+            <span style="font-size:9.5px; text-transform:uppercase; color:var(--muted); font-weight:700; display:block;">Revenue</span>
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:1px;">
+              <span style="font-size:13.5px; font-weight:800; color:var(--navy);" id="forecast-rev">₹0</span>
+              <span style="font-size:9.5px; font-weight:700; color:var(--green);" id="forecast-rev-growth">+9.8%</span>
+            </div>
+          </div>
+          <div style="background:#F8FAFC; padding:8px 10px; border-radius:6px; border:1px solid var(--border);">
+            <span style="font-size:9.5px; text-transform:uppercase; color:var(--muted); font-weight:700; display:block;">ROI</span>
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:1px;">
+              <span style="font-size:13.5px; font-weight:800; color:var(--green);" id="forecast-roi">0%</span>
+              <span style="font-size:9.5px; font-weight:700; color:var(--green);" id="forecast-roi-growth">+11.0%</span>
+            </div>
+          </div>
+          <div style="background:#F8FAFC; padding:8px 10px; border-radius:6px; border:1px solid var(--border);">
+            <span style="font-size:9.5px; text-transform:uppercase; color:var(--muted); font-weight:700; display:block;">Conversions</span>
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:1px;">
+              <span style="font-size:13.5px; font-weight:800; color:var(--navy);" id="forecast-conv">0</span>
+              <span style="font-size:9.5px; font-weight:700; color:var(--green);" id="forecast-conv-growth">+10.2%</span>
+            </div>
+          </div>
+          <div style="background:#F8FAFC; padding:8px 10px; border-radius:6px; border:1px solid var(--border);">
+            <span style="font-size:9.5px; text-transform:uppercase; color:var(--muted); font-weight:700; display:block;">Confidence</span>
+            <div style="font-size:13.5px; font-weight:800; color:var(--blue); margin-top:1px;" id="forecast-conf">0%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Middle Row: Health Score, Benchmarks Comparison & Risk Assessment -->
+  <div class="g3">
+    <!-- Health Score Card -->
+    <div class="cc" id="health-score-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+      <h3 style="margin-bottom:8px;">Executive Marketing Health Score</h3>
+      <div style="display:flex; align-items:center; gap:15px; margin:5px 0;">
+        <div class="health-gauge" id="health-gauge-conic" style="position:relative; width:90px; height:90px; border-radius:50%; background:conic-gradient(var(--green) 0% 82%, #E2E8F0 82% 100%); display:flex; align-items:center; justify-content:center; box-shadow:inset 0 0 8px rgba(0,0,0,0.08);">
+          <div style="width:72px; height:72px; border-radius:50%; background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            <span style="font-size:22px; font-weight:800; color:var(--navy);" id="health-score-val">82</span>
+            <span style="font-size:8px; color:var(--muted); font-weight:700; text-transform:uppercase;">Out of 100</span>
+          </div>
+        </div>
+        <div style="flex:1;">
+          <h4 style="font-size:12.5px; font-weight:700; color:var(--navy); margin-bottom:4px;" id="health-status">Excellent Performance</h4>
+          <p style="font-size:11px; color:var(--muted); line-height:1.35; margin-bottom:4px;">Based on weighted factors: ROI, campaign profitability ratio, CAC efficiency, and CTR strength.</p>
+          <div style="font-size:10px; color:var(--muted); font-weight:700;" id="health-score-trend">Previous Score: 89 &nbsp;|&nbsp; Current Score: 93 &nbsp;|&nbsp; Trend: <span class="roi-pos">+4</span></div>
+        </div>
+      </div>
+      <!-- Health factors details -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:10.5px; border-top:1px solid var(--border); padding-top:8px;">
+        <div>Growth: <strong style="color:var(--green);" id="score-rev-growth">High</strong></div>
+        <div>ROI Strength: <strong style="color:var(--green);" id="score-roi-strength">Optimal</strong></div>
+        <div>Profitable: <strong style="color:var(--amber);" id="score-camp-profit">72%</strong></div>
+        <div>CAC Efficiency: <strong style="color:var(--green);" id="score-cac-eff">High</strong></div>
+      </div>
+    </div>
+
+    <!-- Benchmarks Comparison Card -->
+    <div class="cc" id="benchmarks-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+      <div>
+        <h3>Target Benchmark Comparison</h3>
+        <br>
+        <div class="ci" style="margin-bottom:8px;">Measures current performance against company board targets.</div>
+        <br>
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:8px;">
+          <!-- ROI benchmark -->
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:600; margin-bottom:2px;">
+              <span>ROI (Target: 200%)</span>
+              <span id="bench-roi-val">219.3%</span>
+            </div>
+            <div style="width:100%; height:6px; background:#E2E8F0; border-radius:3px; overflow:hidden;">
+              <div id="bench-roi-bar" style="width:100%; height:100%; background:var(--green); border-radius:3px;"></div>
+            </div>
+          </div>
+          <!-- CAC benchmark -->
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:600; margin-bottom:2px;">
+              <span>CAC (Target: ≤ ₹150)</span>
+              <span id="bench-cac-val">₹325.63</span>
+            </div>
+            <div style="width:100%; height:6px; background:#E2E8F0; border-radius:3px; overflow:hidden;">
+              <div id="bench-cac-bar" style="width:46%; height:100%; background:var(--red); border-radius:3px;"></div>
+            </div>
+          </div>
+          <!-- CTR benchmark -->
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:600; margin-bottom:2px;">
+              <span>CTR (Target: ≥ 3.0%)</span>
+              <span id="bench-ctr-val">3.25%</span>
+            </div>
+            <div style="width:100%; height:6px; background:#E2E8F0; border-radius:3px; overflow:hidden;">
+              <div id="bench-ctr-bar" style="width:100%; height:100%; background:var(--green); border-radius:3px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Executive Risk Assessment Card -->
+    <div class="cc" id="p4-risk-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+      <div>
+        <h3 style="font-size:14px; margin-bottom:4px; color:var(--navy);">Executive Risk Assessment</h3>
+        <br>
+        <div class="ci" style="margin-bottom:8px;">Analysis of portfolio risk exposure and forecast confidence.</div>
+        <br>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+          <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:5px;">
+            <span style="font-size:11px; color:var(--muted); font-weight:600;">Portfolio Risk Level</span>
+            <strong id="p4-risk-level" class="sem-green" style="font-size:11.5px; font-weight:800;">Low</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:5px;">
+            <span style="font-size:11px; color:var(--muted); font-weight:600;">Forecast Confidence</span>
+            <strong id="p4-risk-confidence" style="font-size:11.5px; font-weight:800; color:var(--blue);">92%</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:5px;">
+            <span style="font-size:11px; color:var(--muted); font-weight:600;">Key Risk Driver</span>
+            <strong id="p4-risk-driver" style="font-size:11.5px; font-weight:800; color:var(--red); margin-top:1px;">North America (ROI: -35%)</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:5px;">
+            <span style="font-size:11px; color:var(--muted); font-weight:600;">Estimated Risk Exposure</span>
+            <strong id="p4-risk-exposure" style="font-size:11.5px; font-weight:800; color:var(--red); margin-top:1px;">₹0</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Block: Consolidated Executive Action Summary (Execution Layer) -->
+  <div class="gfull">
+    <div class="cc" id="p4-actions-card">
+      <h3 style="margin-bottom:6px; color:var(--navy);">Consolidated Executive Action Summary</h3>
+      <div style="font-size:11.5px; color:var(--muted); margin-bottom:14px;">Boardroom intelligence recommendations prioritized by segment ROI and portfolio waste reduction.</div>
+      <div id="p4-actions-grid" class="actions-list-p4">
+        <div class="action-strip-p4 critical critical-priority">
+          <div class="strip-badge"><span class="badge red">Critical</span></div>
+          <div class="strip-content"><p id="rec-action-2">Pause bottom low-performing campaigns immediately to save net portfolio loss.</p></div>
+        </div>
+        <div class="action-strip-p4 growth">
+          <div class="strip-badge"><span class="badge green">Growth</span></div>
+          <div class="strip-content"><p id="rec-action-1">Increase budget allocation for top performing platform.</p></div>
+        </div>
+        <div class="action-strip-p4 saving">
+          <div class="strip-badge"><span class="badge orange">Cost Saving</span></div>
+          <div class="strip-content"><p id="rec-action-3">Reduce spend on underperforming campaigns and reallocate.</p></div>
+        </div>
+        <div class="action-strip-p4 strategic">
+          <div class="strip-badge"><span class="badge blue">Strategic</span></div>
+          <div class="strip-content"><p id="rec-action-4">Focus targeting targeting on the highly cost-efficient audience segment.</p></div>
+        </div>
+        <div class="action-strip-p4 scale">
+          <div class="strip-badge"><span class="badge purple">Scale</span></div>
+          <div class="strip-content"><p id="rec-action-5">Scale campaign formats returning high ROI.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
