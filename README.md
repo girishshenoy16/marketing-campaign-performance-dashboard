@@ -61,10 +61,10 @@
 
 **Data Pipeline:**
 ```
-campaign_data.csv (raw 120 rows)
+scripts/generate_data.py (cleaning: missing values, duplicates, outliers, validation)
        |
        v
-scripts/generate_data.py (cleaning: missing values, duplicates, outliers, validation)
+campaign_data.csv (raw 120 rows)
        |
        v
 cleaned_campaign_data.csv (104 validated rows) -> Used for analysis
