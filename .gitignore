@@ -28,10 +28,3 @@ pip-wheel-metadata/
 .DS_Store
 Thumbs.db
 desktop.ini
-
-# Project-specific Ignores
-# Ignore screenshot images (but allow .gitkeep)
-screenshots/*.png
-screenshots/*.jpg
-screenshots/*.jpeg
-!screenshots/.gitkeep
