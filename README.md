@@ -77,7 +77,7 @@ docs/data.json (JSON records) -> Used dynamically by web dashboard
 
 ## Methodology
 
-### 1. Data Collection & Cleaning (Points 3-4)
+### 1. Data Collection & Cleaning 
 - Generated 120 marketing campaign records with realistic patterns
 - **Missing values:** Filled numerical with median, categorical with mode
 - **Duplicates:** Checked and removed
@@ -92,7 +92,7 @@ docs/data.json (JSON records) -> Used dynamically by web dashboard
 - Correlation heatmaps
 - Boxplot comparisons by platform, region, segment
 
-### 3. Campaign Performance Analysis (Point 6)
+### 3. Campaign Performance Analysis 
 - **Best-performing campaigns:** Sorted by ROI and Revenue descending
 - **Highest ROI campaigns:** Top 10 identified with common characteristics
 - **Lowest-performing campaigns:** Bottom 5 flagged for review
